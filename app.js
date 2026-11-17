@@ -4,8 +4,8 @@
   // ==========================================
   // ★ ここにSupabaseの接続情報を設定してください
   // ==========================================
-  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const SUPABASE_URL = "https://idstfjcrxuvbmakpgntm.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_uqzAODN57ID3MwIAchCvbA_36wWHAjp";
 
   const supabaseClient = window.supabase
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
