@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f1e8">
+    <title>将棋 — 対局室</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="将棋 対局室">
+          <span class="brand-mark" aria-hidden="true">将</span>
+          <span><strong>将棋</strong><small>SHOGI ROOM</small></span>
+        </a>
+        <div class="topbar-note"><span class="live-dot"></span>いつでも、気軽に一局。</div>
+      </header>
+
+      <section class="game-layout" aria-label="将棋の対局">
+        <div class="board-column">
+          <!-- 上側プレイヤー（通常は後手、後手視点の時は先手） -->
+          <div class="player-card player-top" id="top-player">
+            <div class="player-identity">
+              <span class="player-avatar" id="top-avatar" aria-hidden="true">後</span>
+              <span><strong id="top-name">後手</strong><small id="top-caption">GOTE</small></span>
+            </div>
+            <div class="turn-indicator" id="top-turn">手番</div>
+          </div>
+          <div class="captured-area captured-top" aria-label="相手の持ち駒">
+            <span class="captured-label">持ち駒</span>
+            <div class="hand" id="top-hand"></div>
+          </div>
+
+          <div class="board-frame">
+            <div class="file-labels" id="file-labels" aria-hidden="true"><span>９</span><span>８</span><span>７</span><span>６</span><span>５</span><span>４</span><span>３</span><span>２</span><span>１</span></div>
+            <div class="board" id="board" role="grid" aria-label="将棋盤"></div>
+            <div class="rank-labels" id="rank-labels" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+          </div>
+
+          <div class="captured-area captured-bottom" aria-label="自分の持ち駒">
+            <span class="captured-label">持ち駒</span>
+            <div class="hand" id="bottom-hand"></div>
+          </div>
+          <!-- 下側プレイヤー（通常は先手、後手視点の時は後手） -->
+          <div class="player-card player-bottom" id="bottom-player">
+            <div class="player-identity">
+              <span class="player-avatar" id="bottom-avatar" aria-hidden="true">先</span>
+              <span><strong id="bottom-name">先手</strong><small id="bottom-caption">SENTE</small></span>
+            </div>
+            <div class="turn-indicator" id="bottom-turn">手番</div>
+          </div>
+        </div>
+
+        <aside class="side-panel">
+          <section class="panel-section game-controls">
+            <div class="section-heading"><span class="eyebrow">NEW GAME</span><h1>対局設定</h1></div>
+            <div class="mode-switch mode-switch-3" role="group" aria-label="対局モード">
+              <button type="button" class="mode-button active" data-mode="cpu" aria-pressed="true">CPU戦</button>
+              <button type="button" class="mode-button" data-mode="pvp" aria-pressed="false">二人で対局</button>
+              <button type="button" class="mode-button" data-mode="online" aria-pressed="false">オンライン</button>
+            </div>
+
+            <!-- ローカル対局用コントロール -->
+            <div id="local-controls">
+              <button type="button" class="primary-button" id="new-game">新しい対局 <span aria-hidden="true">↗</span></button>
+              <button type="button" class="secondary-button" id="undo" disabled>一手戻す</button>
+            </div>
+
+            <!-- オンライン対局用コントロール -->
+            <div id="online-controls" hidden>
+              <div id="online-lobby">
+                <button type="button" class="primary-button" id="create-room">部屋を作る（先手）</button>
+                <div class="join-box">
+                  <input type="text" id="room-id-input" class="room-input" placeholder="6桁の部屋ID" maxlength="6" autocomplete="off">
+                  <button type="button" class="secondary-button join-btn" id="join-room">参加（後手）</button>
+                </div>
+              </div>
+
+              <div id="online-active" hidden>
+                <div class="room-badge">
+                  <div>
+                    <small>ROOM ID（相手に共有）</small>
+                    <strong id="display-room-id">------</strong>
+                  </div>
+                  <button type="button" class="copy-btn" id="copy-room-id">コピー</button>
+                </div>
+                <button type="button" class="secondary-button resign-btn" id="resign-btn">投了する</button>
+                <button type="button" class="secondary-button" id="leave-room">退室する</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section status-section" aria-live="polite">
+            <div class="section-heading"><span class="eyebrow">NOW PLAYING</span><h2>対局状況</h2></div>
+            <div class="status-card">
+              <span class="status-icon" id="status-icon" aria-hidden="true">●</span>
+              <div><strong id="game-status">先手の手番です</strong><small id="status-detail">駒を選んで移動先を選択</small></div>
+            </div>
+          </section>
+
+          <section class="panel-section move-section">
+            <div class="section-heading move-heading"><span class="eyebrow">MOVE HISTORY</span><h2>棋譜</h2><span class="move-count" id="move-count">0手</span></div>
+            <ol class="move-list" id="move-list" aria-label="棋譜"></ol>
+            <div class="empty-history" id="empty-history"><span aria-hidden="true">棋</span><p>最初の一手を<br>お待ちしています</p></div>
+          </section>
+
+          <details class="rules-note">
+            <summary>遊び方・基本ルール</summary>
+            <p>交互に一手ずつ指し、相手の玉を詰ませた側が勝ちです。取った駒は持ち駒になり、自分の手番に盤上へ打てます。敵陣（相手側の三段）では、歩・香・桂・銀・角・飛を成れます。</p>
+            <p>同じ筋に自分の歩を二枚置くこと、行き所のない駒を打つこと、打ち歩詰めは禁止です。玉が王手を受けているときは、王手を解消する手だけ指せます。</p>
+          </details>
+          <footer class="panel-footer">シンプルな将棋の対局室</footer>
+        </aside>
+      </section>
+      <footer class="mobile-footer">SHOGI ROOM <span>・</span> 一局、指していきませんか。</footer>
+    </main>
+
+    <dialog id="promotion-dialog" class="promotion-dialog" aria-labelledby="promotion-title">
+      <form method="dialog">
+        <span class="eyebrow">PROMOTION</span>
+        <h2 id="promotion-title">成りますか？</h2>
+        <p>敵陣に入った駒は、成ることができます。</p>
+        <div class="promotion-actions">
+          <button type="button" class="primary-button" id="promote-yes">成る</button>
+          <button type="button" class="secondary-button" id="promote-no">成らない</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="shogi.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
